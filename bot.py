@@ -151,3 +151,5 @@ def handle_text(message):
 threading.Thread(target=remind_pills, daemon=True).start()
 print("Бот запущен")
 bot.polling(none_stop=True)
+
+
