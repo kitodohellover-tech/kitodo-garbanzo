@@ -80,7 +80,7 @@ def ask_ai(question):
         "Content-Type": "application/json"
     }
     data = {
-        "model": "llama-3.3-70b-versatile",
+        "model": "llama-3.1-70b-turbo",
         "messages": [
             {"role": "system", "content": "Ты — дружелюбный ассистент студента железнодорожного техникума в Телеграм-боте. Отвечай кратко, по делу, на русском языке. Можно использовать эмодзи."}
         ] + recent,
