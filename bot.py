@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 bot = telebot.TeleBot(BOT_TOKEN)
 
-YOUR_CHAT_ID = None  # сюда потом вставишь свой chat_id
+YOUR_CHAT_ID = 8834374199
 
 SCHEDULE = {
     "понедельник": [
