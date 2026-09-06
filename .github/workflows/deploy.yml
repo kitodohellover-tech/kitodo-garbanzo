@@ -1,23 +1,31 @@
-name: Run Telegram Bot
+name: Deploy Telegram Bot
 
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:
 
 jobs:
-  run-bot:
+  deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.10"
+
       - name: Install dependencies
-        run: pip install -r requirements.txt
-      - name: Run bot
-        run: python bot.py
+        run: |
+          pip install python-telegram-bot requests
+
+      - name: Deploy
         env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          TELEGRAM_BOT_TOKEN: \${{ secrets.TELEGRAM_BOT_TOKEN }}
+          GROQ_API_KEY: \${{ secrets.GROQ_API_KEY }}
+        run: |
+          # Здесь можно добавить запуск через systemd, docker, screen и т.п.
+          # Для теста просто запустим в фоне:
+          nohup python bot.py > bot.log 2>&1 &
+          echo "Bot started"
