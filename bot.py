@@ -3,6 +3,7 @@ import os
 import threading
 import time
 from datetime import datetime, timedelta
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 bot = telebot.TeleBot(BOT_TOKEN)
@@ -41,6 +42,26 @@ SCHEDULE = {
     "воскресенье": ["Выходной"]
 }
 
+DAY_MAP = {
+    "monday": "понедельник", "tuesday": "вторник", "wednesday": "среда",
+    "thursday": "четверг", "friday": "пятница", "saturday": "суббота", "sunday": "воскресенье"
+}
+
+def get_main_menu():
+    markup = InlineKeyboardMarkup()
+    markup.add(InlineKeyboardButton("📅 Расписание на сегодня", callback_data="today"))
+    markup.add(InlineKeyboardButton("📆 Расписание на завтра", callback_data="tomorrow"))
+    markup.add(InlineKeyboardButton("📋 Всё расписание", callback_data="all"))
+    markup.add(InlineKeyboardButton("💊 Напоминания", callback_data="pills_info"))
+    return markup
+
+def get_schedule_text(day_key):
+    lines = SCHEDULE.get(day_key, ["Нет пар"])
+    text = ""
+    for line in lines:
+        text += f"• {line}\n"
+    return text
+
 def remind_pills():
     last_sent = {"morning": None, "evening": None}
     while True:
@@ -58,39 +79,34 @@ def remind_pills():
 
 @bot.message_handler(commands=["start"])
 def send_welcome(message):
-    bot.reply_to(message, "Привет! Я твой бот.\n/ucheba — расписание на сегодня\n/zavtra — на завтра\n/id — твой chat_id")
+    text = "Привет! Я твой бот-помощник 🤖\nВыбери, что нужно:"
+    bot.send_message(message.chat.id, text, reply_markup=get_main_menu())
 
-@bot.message_handler(commands=["ucheba"])
-def show_schedule(message):
-    day_map = {
-        "monday": "понедельник", "tuesday": "вторник", "wednesday": "среда",
-        "thursday": "четверг", "friday": "пятница", "saturday": "суббота", "sunday": "воскресенье"
-    }
-    current_day = day_map.get(datetime.now().strftime("%A").lower(), "понедельник")
-    text = f"📅 Расписание на {current_day}:\n\n"
-    for line in SCHEDULE.get(current_day, ["Нет пар"]):
-        text += f"• {line}\n"
-    bot.reply_to(message, text)
-
-@bot.message_handler(commands=["zavtra"])
-def show_tomorrow(message):
-    day_map = {
-        "monday": "понедельник", "tuesday": "вторник", "wednesday": "среда",
-        "thursday": "четверг", "friday": "пятница", "saturday": "суббота", "sunday": "воскресенье"
-    }
-    tomorrow_day = day_map.get((datetime.now() + timedelta(days=1)).strftime("%A").lower(), "понедельник")
-    text = f"📅 Расписание на завтра ({tomorrow_day}):\n\n"
-    for line in SCHEDULE.get(tomorrow_day, ["Нет пар"]):
-        text += f"• {line}\n"
-    bot.reply_to(message, text)
-
-@bot.message_handler(commands=["id"])
-def show_id(message):
-    bot.reply_to(message, f"Твой chat_id: {message.chat.id}\nСкопируй это число и вставь вместо None в коде.")
+@bot.callback_query_handler(func=lambda call: True)
+def handle_callback(call):
+    if call.data == "today":
+        day_key = DAY_MAP.get(datetime.now().strftime("%A").lower(), "понедельник")
+        text = f"📅 Расписание на сегодня ({day_key}):\n\n" + get_schedule_text(day_key)
+        bot.edit_message_text(text, call.message.chat.id, call.message.message_id, reply_markup=get_main_menu())
+    elif call.data == "tomorrow":
+        day_key = DAY_MAP.get((datetime.now() + timedelta(days=1)).strftime("%A").lower(), "понедельник")
+        text = f"📆 Расписание на завтра ({day_key}):\n\n" + get_schedule_text(day_key)
+        bot.edit_message_text(text, call.message.chat.id, call.message.message_id, reply_markup=get_main_menu())
+    elif call.data == "all":
+        text = "📋 Полное расписание:\n\n"
+        for day, pairs in SCHEDULE.items():
+            text += f"📍 {day.title()}:\n"
+            for line in pairs:
+                text += f"  {line}\n"
+            text += "\n"
+        bot.edit_message_text(text, call.message.chat.id, call.message.message_id, reply_markup=get_main_menu())
+    elif call.data == "pills_info":
+        text = "💊 Напоминания о таблетках:\n\nУтро — 7:00\nВечер — 19:00\n\nНапоминания приходят автоматически."
+        bot.edit_message_text(text, call.message.chat.id, call.message.message_id, reply_markup=get_main_menu())
 
 @bot.message_handler(func=lambda m: True)
 def echo_all(message):
-    bot.reply_to(message, f"Ты написал: {message.text}")
+    bot.send_message(message, f"Ты написал: {message.text}\n\nВыбери кнопку:", reply_markup=get_main_menu())
 
 threading.Thread(target=remind_pills, daemon=True).start()
 print("Бот запущен")
